@@ -3,7 +3,6 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package databaseparseupload;
 
 /**
  *
@@ -17,7 +16,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
-public class DatabaseParseUpload {
+public class Main {
     public static String[] Items = new String[]{"item_quelling_blade","item_blight_stone","item_boots","item_ring_of_health",
         "item_morbid_mask","item_blink_dagger","item_poor_mans_shield","item_stout_shield","item_hand_of_midas","item_boots_of_travel",
             "item_moon_shard","item_phase_boots","item_power_treads","item_ring_of_basilius","item_iron_talon","item_tranquil_boots",
@@ -107,17 +106,19 @@ public class DatabaseParseUpload {
             while ((strLine = br.readLine()) != null)   {
                 if(strLine.contains("\"DOTA_COMBATLOG_GAME_STATE\",\"value\":5"))
                     startTime = Double.parseDouble(strLine.substring(strLine.indexOf("time")+6, strLine.indexOf("type")-2));
-                if(strLine.contains("\"DOTA_COMBATLOG_TEAM_BUILDING_KILL\",\"value\":3")){
-                    if(strLine.contains("npc_dota_badguys_fort"))
-                        winner = "radiant";
-                    else
-                        winner = "dire";
+                else if(strLine.contains("\"DOTA_COMBATLOG_TEAM_BUILDING_KILL\"")){
+                	if(strLine.contains(",\"value\":3")){
+	                    if(strLine.contains("npc_dota_badguys_fort"))
+	                        winner = "radiant";
+	                    else
+	                        winner = "dire";
+                	}
                 }                    
-                if(strLine.contains("hero_inventory")){
+                else if(strLine.contains("hero_inventory")){
                     for(int i = 0; i <= 9; i++){
                         if(strLine.contains("\"type\":\"interval\"") && strLine.contains("\"slot\":" + i)){
                                 //System.out.print(strLine);
-                                heroes.get(i).add(new Interval(strLine));
+                                heroes.get(i).add(new Interval(strLine, 0));
                                 newItems.get(i).clear();
                                 String[] temp = strLine.substring(strLine.indexOf("hero_inventory")+16, strLine.indexOf("life_state")-3).split("\"");
                                 for(String str : temp){
@@ -128,35 +129,51 @@ public class DatabaseParseUpload {
                                 }
                                 if(!newItems.get(i).isEmpty())
                                         heroes.get(i).get(heroes.get(i).size()-1).setNewItem(newItems.get(i).toString().replaceAll(",", " "));
-                        }
+                                break;
+                        }                        
                     }                  
-                }	  
+                }
+                else if(strLine.contains("\"type\":\"DOTA_COMBATLOG")){
+                    //System.out.print(strLine);
+                	for(int i = 0; i <= 9; i++){
+                        if(strLine.contains("DOTA_COMBATLOG_DEATH") && strLine.contains("\"attackername\":\"" + heroes.get(i).get(0).getHero())){
+                                //System.out.print(strLine);
+                                heroes.get(i).add(new Interval(strLine, 0));
+                                newItems.get(i).clear();
+                                String[] temp = strLine.substring(strLine.indexOf("hero_inventory")+16, strLine.indexOf("life_state")-3).split("\"");
+                                for(String str : temp){
+                                        if(str.contains("item") && !oldItems.get(i).contains(str)){
+                                                newItems.get(i).add(str);
+                                                oldItems.get(i).add(str);
+                                        }
+                                }
+                                if(!newItems.get(i).isEmpty())
+                                        heroes.get(i).get(heroes.get(i).size()-1).setNewItem(newItems.get(i).toString().replaceAll(",", " "));
+                               
+                        }
+                        else if(strLine.contains("DOTA_COMBATLOG_DEATH") && strLine.contains("\"targetname\":\"" + heroes.get(i).get(0).getHero())){
+                            //System.out.print(strLine);
+                            heroes.get(i).add(new Interval(strLine, 0));
+                            newItems.get(i).clear();
+                            String[] temp = strLine.substring(strLine.indexOf("hero_inventory")+16, strLine.indexOf("life_state")-3).split("\"");
+                            for(String str : temp){
+                                    if(str.contains("item") && !oldItems.get(i).contains(str)){
+                                            newItems.get(i).add(str);
+                                            oldItems.get(i).add(str);
+                                    }
+                            }
+                            if(!newItems.get(i).isEmpty())
+                                    heroes.get(i).get(heroes.get(i).size()-1).setNewItem(newItems.get(i).toString().replaceAll(",", " "));
+                           
+                        }
+                    }
+                }
             }
-            String temp = winner;
+            printOut.println("\"frame\",\"gold\",\"ratio\",\"new_item\",\"hero\",\"side\",\"winner\",\"spelldamage\",\"physicaldamage\",\"xpos\",\"ypos\",\"xp\",\"buildingdamage\""
+            		+ ",\"lanelh\",\"nuetrallh\",\"ancientlh\",\"stacks\",\"roshan\",\"smokes\",\"smoketime\",\"deathtime\",\"deathes\",\"biuldingkills\",\"kills\",\"assists\","
+            		+ "\"denies\",\"healing\",\"mods\",\"stun\",\"obs\",\"sents\",\"casts\"");
             for(int i = 0; i < 10; i ++){
-                System.out.println(heroes.get(i).get(1).getHero().toLowerCase() + " = " + winner + ", slot#:" + i);
-                if(heroes.get(i).get(1).getHero().toLowerCase().contains(args[2])){
-                    if(args[3].toLowerCase().contains("radiant") && winner.contains("radiant") && i < 5)
-                        temp = "yes";
-                    else if(args[3].toLowerCase().contains("radiant") && winner.contains("dire"))
-                        temp = "no";
-                    else if(args[3].toLowerCase().contains("radiant") && winner.contains("radiant") && i > 4)
-                        temp = "no";
-                    else if(args[3].toLowerCase().contains("dire") && winner.contains("dire") && i > 4)
-                        temp = "yes";
-                    else if(args[3].toLowerCase().contains("dire") && winner.contains("radiant"))
-                        temp = "no";
-                    else if(args[3].toLowerCase().contains("dire") && winner.contains("dire") && i < 5)
-                        temp = "no";
-                    else
-                        temp = "UnKnown";
-                    break;
-                }   
-            }
-            printOut.println("\"frame\", \"gold\", \"ratio\", \"new_item\", \"hero\", \"winner\"");
-            for(int i = 0; i < 10; i ++){
-                for(Interval j : heroes.get(i)){
-                    
+                for(Interval j : heroes.get(i)){                    
                     double direNet = (heroes.get(5).get(heroes.get(i).indexOf(j)).getGold()+
                             heroes.get(6).get(heroes.get(i).indexOf(j)).getGold()+
                                 heroes.get(7).get(heroes.get(i).indexOf(j)).getGold()+
@@ -171,12 +188,12 @@ public class DatabaseParseUpload {
                         if(i < 5){                        
                             j.setRatio(j.getGold()/direNet);
                             j.setTime(j.getTime() - startTime);
-                            printOut.println(j.getPrintString() + ", " + temp);
+                            printOut.println(j.getPrintString() + ",radiant," + winner);
                         }
                         else{                        
                             j.setRatio(j.getGold()/radianceNet);
                             j.setTime(j.getTime() - startTime);
-                            printOut.println(j.getPrintString() + ", " + temp);
+                            printOut.println(j.getPrintString() + ",dire" + winner);
                         }
                     }                    
                 }                        
