@@ -1,11 +1,21 @@
 #!/bin/bash
-for filename in replays/*; do
-	bzip2 -ckd $filename > demFiles/"$(basename ${filename%%.*})".dem
+cd input/
+for filename in /*.bz2; do
+	bzip2 -ckd $filename > "$(basename ${filename%%.*})".dem
 done
-for filename in demFiles/*; do 
-	java -jar combatlog.one-jar.jar $filename > combatlog.txt
-	filename=$(basename $filename)
-	java -jar Untitled.jar >> Parsed/parsed_"${filename%%.*}".txt
-	cp combatlog.txt CombatLogs/CombatLog_"${filename%%.*}".txt
+for filename in /*.dem; 
+do
+		java -jar stats-0.1.0.jar $filename output/"$(basename ${filename%%.*})"		
 done
-rm -r replays/*
+cd ../
+cd output/
+for filename in /*; 
+do
+		zip compressed/"$(basename ${filename%%.*})" "$(basename ${filename%%.*})"
+done 
+cd ../
+cd compressed/
+for filename in /*; 
+do
+		php upload.php "$(basename ${filename%%.*})" "$(basename ${filename%%.*})".zip
+done 
